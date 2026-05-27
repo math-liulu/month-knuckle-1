@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大小月大判断 - 互动教学游戏</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #fef3c7;
+            --card-bg: #ffffff;
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --text-main: #1e293b;
+        }
+
+        html { font-size: 18px; }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--primary-bg);
+            background-image: radial-gradient(#fcd34d 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-main);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Glass card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border-radius: 1rem;
+        }
+
+        /* Month display */
+        .month-display {
+            font-size: 8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1e293b 0%, #64748b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Role card */
+        .role-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .role-card.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Toggle button */
+        .btn-switch {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            transition: all 0.2s;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-switch.active {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Pulse animation */
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .header-bar {
+            width: 0.5rem;
+            height: 2rem;
+            background-color: #eab308;
+            border-radius: 9999px;
+        }
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        /* Timer */
+        .timer {
+            font-size: 1.5rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgb(226 232 240);
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+        .timer span { color: #2563eb; }
+
+        /* Main */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0 2rem 2rem 2rem;
+            gap: 1.5rem;
+        }
+
+        /* Cards grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        .card-inner {
+            padding: 1.25rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            border-left-width: 4px;
+            border-left-style: solid;
+        }
+        .card-inner img {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 0.75rem;
+            object-fit: cover;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .card-big { border-left-color: #f59e0b; }
+        .card-small { border-left-color: #3b82f6; }
+        .card-special { border-left-color: #f43f5e; }
+
+        .card-title-big { color: rgb(255, 77, 79); font-weight: 700; font-size: 1.5rem; }
+        .card-title-small { color: #2563eb; font-weight: 700; font-size: 1.5rem; }
+        .card-title-special { color: #e11d48; font-weight: 700; font-size: 1.5rem; }
+        .card-action {
+            font-size: 32px;
+            font-weight: 700;
+            color: #475569;
+            margin-top: 0.25rem;
+        }
+
+        /* Game area */
+        .game-area {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .bg-blob {
+            position: absolute;
+            width: 16rem;
+            height: 16rem;
+            border-radius: 9999px;
+            filter: blur(64px);
+            opacity: 0.1;
+            pointer-events: none;
+        }
+        .bg-blob-blue { background: #3b82f6; top: 2.5rem; left: 2.5rem; }
+        .bg-blob-yellow { background: #eab308; bottom: 2.5rem; right: 2.5rem; }
+
+        /* Buttons area */
+        .buttons-area {
+            position: absolute;
+            top: 1.5rem;
+            z-index: 20;
+            display: flex;
+            gap: 1rem;
+        }
+        .game-btn {
+            padding: 0.75rem 2.5rem;
+            border-radius: 9999px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .game-btn:hover { transform: scale(1.05); }
+        .game-btn:active { transform: scale(0.95); }
+
+        .continue-btn {
+            background: linear-gradient(to right, #3b82f6, #4f46e5);
+            color: white;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        /* Month container */
+        .month-container {
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .month-label {
+            font-size: 1.875rem;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        /* Feedback */
+        .feedback {
+            position: absolute;
+            bottom: 2.5rem;
+            font-size: 2.25rem;
+            font-weight: 700;
+            opacity: 0;
+            transform: translateY(1rem);
+            transition: all 0.3s;
+        }
+
+        .text-amber-600 { color: #d97706; }
+        .text-blue-600 { color: #2563eb; }
+        .text-rose-600 { color: #e11d48; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="header-bar"></div>
+            <h1 class="header-title">游戏：大月、小月、特殊月的判断</h1>
+        </div>
+        <div id="timer" class="timer hidden">
+            倒计时: <span>03.0s</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- 三张角色卡片 -->
+        <section class="cards-grid">
+            <div id="card-big" class="role-card glass-card card-inner card-big">
+                <img src="https://musk-online.fbcontent.cn/pub-musk-ai-studio/workflow/file/picture/m78v7gVSc9X6nKPySiXPZ5.jpg" alt="大月">
+                <div>
+                    <h3 class="card-title-big">大月（31天）</h3>
+                    <p class="card-action">拍手两下</p>
+                </div>
+            </div>
+
+            <div id="card-small" class="role-card glass-card card-inner card-small">
+                <img src="https://musk-online.fbcontent.cn/pub-musk-ai-studio/workflow/file/picture/N3BH4fgqkPboyx2TkhA8e8.jpg" alt="小月">
+                <div>
+                    <h3 class="card-title-small">小月（30天）</h3>
+                    <p class="card-action">双手举起</p>
+                </div>
+            </div>
+
+            <div id="card-special" class="role-card glass-card card-inner card-special">
+                <img src="https://musk-online.fbcontent.cn/pub-musk-ai-studio/workflow/file/picture/bAwGfM4Y54bRqLXDT42ynH.jpg" alt="特殊月">
+                <div>
+                    <h3 class="card-title-special">特殊月（28或29天）</h3>
+                    <p class="card-action">双手摸耳朵</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 游戏主区域 -->
+        <section class="game-area glass-card">
+            <!-- 背景装饰 -->
+            <div class="bg-blob bg-blob-blue"></div>
+            <div class="bg-blob bg-blob-yellow"></div>
+
+            <!-- 按钮区 -->
+            <div class="buttons-area">
+                <button id="gameToggle" class="game-btn btn-switch">
+                    <span id="toggleIcon">▶</span>
+                    <span id="toggleText">游戏开始</span>
+                </button>
+                <button id="continueBtn" class="game-btn continue-btn hidden">
+                    继续
+                </button>
+            </div>
+
+            <!-- 月份显示 -->
+            <div class="month-container">
+                <div id="monthValue" class="month-display">?</div>
+                <div id="monthLabel" class="month-label">准备好了吗？</div>
+            </div>
+
+            <!-- 反馈文字 -->
+            <div id="feedback" class="feedback"></div>
+        </section>
+    </main>
+
+    <script>
+        const months = [
+            { val: 1, type: 'big', name: '一月' },
+            { val: 2, type: 'special', name: '二月' },
+            { val: 3, type: 'big', name: '三月' },
+            { val: 4, type: 'small', name: '四月' },
+            { val: 5, type: 'big', name: '五月' },
+            { val: 6, type: 'small', name: '六月' },
+            { val: 7, type: 'big', name: '七月' },
+            { val: 8, type: 'big', name: '八月' },
+            { val: 9, type: 'small', name: '九月' },
+            { val: 10, type: 'big', name: '十月' },
+            { val: 11, type: 'small', name: '十一月' },
+            { val: 12, type: 'big', name: '十二月' }
+        ];
+
+        let isPlaying = false;
+        let gameTimer = null;
+        let countdownInterval = null;
+        let currentMonth = null;
+        let roundCount = 0;
+
+        const toggleBtn = document.getElementById('gameToggle');
+        const continueBtn = document.getElementById('continueBtn');
+        const toggleText = document.getElementById('toggleText');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const monthValue = document.getElementById('monthValue');
+        const monthLabel = document.getElementById('monthLabel');
+        const feedback = document.getElementById('feedback');
+        const timerDisplay = document.getElementById('timer');
+
+        const cards = {
+            big: document.getElementById('card-big'),
+            small: document.getElementById('card-small'),
+            special: document.getElementById('card-special')
+        };
+
+        toggleBtn.addEventListener('click', () => {
+            if (!isPlaying) {
+                startGame();
+            } else {
+                stopGame();
+            }
+        });
+
+        continueBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                nextRound();
+            }
+        });
+
+        function startGame() {
+            isPlaying = true;
+            roundCount = 0;
+            toggleBtn.classList.add('active');
+            toggleText.innerText = '结束游戏';
+            toggleIcon.innerText = '■';
+            timerDisplay.classList.remove('hidden');
+            nextRound();
+        }
+
+        function stopGame() {
+            isPlaying = false;
+            roundCount = 0;
+            toggleBtn.classList.remove('active');
+            toggleText.innerText = '游戏开始';
+            toggleIcon.innerText = '▶';
+            timerDisplay.classList.add('hidden');
+            continueBtn.classList.add('hidden');
+            clearTimeout(gameTimer);
+            clearInterval(countdownInterval);
+            resetUI();
+        }
+
+        function playTensionSound() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const rollInterval = 80;
+
+            const playTick = (freq, volume, duration) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(volume, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            };
+
+            let count = 0;
+            const maxTicks = 25;
+            const timer = setInterval(() => {
+                const freq = 150 + (count * 10);
+                playTick(freq, 0.1, 0.05);
+                count++;
+                if (count >= maxTicks) {
+                    clearInterval(timer);
+                    playTick(440, 0.2, 0.3);
+                }
+            }, rollInterval);
+        }
+
+        function nextRound() {
+            if (!isPlaying) return;
+
+            if (toggleBtn.disabled) return;
+            toggleBtn.disabled = true;
+            toggleBtn.style.opacity = '0.5';
+            continueBtn.classList.add('hidden');
+
+            resetUI();
+
+            roundCount++;
+
+            // 第四次必出二月，且增加二月出现的概率
+            if (roundCount === 4) {
+                currentMonth = months.find(m => m.val === 2);
+            } else {
+                const weightedMonths = [...months, ...Array(3).fill(months.find(m => m.val === 2))];
+                currentMonth = weightedMonths[Math.floor(Math.random() * weightedMonths.length)];
+            }
+
+            // 播放紧张感音效
+            playTensionSound();
+
+            // 月份滚动效果
+            let rollCount = 0;
+            const maxRolls = 25;
+            const rollInterval = setInterval(() => {
+                const tempMonth = months[Math.floor(Math.random() * months.length)];
+                monthValue.innerText = tempMonth.val + '月';
+                rollCount++;
+
+                if (rollCount >= maxRolls) {
+                    clearInterval(rollInterval);
+                    monthValue.innerText = currentMonth.val + '月';
+
+                    // 停下后的强调动画
+                    anime({
+                        targets: '#monthValue',
+                        scale: [1, 1.3, 1],
+                        duration: 400,
+                        easing: 'easeOutBack'
+                    });
+
+                    monthLabel.innerText = '请判断！';
+
+                    // 启动倒计时
+                    startCountdown(3.0);
+
+                    // 3秒后显示答案
+                    gameTimer = setTimeout(() => {
+                        showAnswer();
+                    }, 3000);
+                }
+            }, 80);
+
+            monthLabel.innerText = '正在抽取...';
+        }
+
+        function startCountdown(seconds) {
+            let remaining = seconds;
+            const span = timerDisplay.querySelector('span');
+            span.innerText = remaining.toFixed(1) + 's';
+
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                remaining -= 0.1;
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    span.innerText = '0.0s';
+                } else {
+                    span.innerText = remaining.toFixed(1) + 's';
+                }
+            }, 100);
+        }
+
+        function showAnswer() {
+            if (!isPlaying) return;
+
+            // 高亮对应卡片
+            const activeCard = cards[currentMonth.type];
+            activeCard.classList.add('active', 'pulse');
+
+            // 显示反馈文字
+            feedback.style.opacity = '1';
+            feedback.style.transform = 'translateY(0)';
+
+            let resultText = '';
+            let colorClass = '';
+
+            if (currentMonth.type === 'big') {
+                resultText = '大月 (31天) - 拍手两下！';
+                colorClass = 'text-amber-600';
+            } else if (currentMonth.type === 'small') {
+                resultText = '小月 (30天) - 双手举起！';
+                colorClass = 'text-blue-600';
+            } else {
+                resultText = '特殊月 (28/29天) - 双手摸耳朵！';
+                colorClass = 'text-rose-600';
+            }
+
+            feedback.innerHTML = `<span class="${colorClass}">${resultText}</span>`;
+            monthLabel.innerText = '判断正确了吗？';
+
+            // 恢复按钮点击
+            toggleBtn.disabled = false;
+            toggleBtn.style.opacity = '1';
+            continueBtn.classList.remove('hidden');
+        }
+
+        function resetUI() {
+            Object.values(cards).forEach(card => card.classList.remove('active', 'pulse'));
+            feedback.style.opacity = '0';
+            feedback.style.transform = 'translateY(1rem)';
+            monthValue.innerText = isPlaying ? '...' : '?';
+            monthLabel.innerText = isPlaying ? '准备中...' : '准备好了吗？';
+        }
+
+        // 初始动画
+        anime({
+            targets: '.role-card',
+            translateX: [-50, 0],
+            opacity: [0, 1],
+            delay: anime.stagger(100),
+            easing: 'easeOutExpo'
+        });
+    </script>
+
+</body>
+</html>
